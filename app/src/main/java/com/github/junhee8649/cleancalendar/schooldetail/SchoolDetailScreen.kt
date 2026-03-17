@@ -123,6 +123,7 @@ fun SchoolDetailScreen(
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
@@ -238,7 +239,7 @@ private fun SchoolDetailContent(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
                             .padding(top = 12.dp),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(16.dp),
                         color = MaterialTheme.colorScheme.surface
                     ) {
                         Column {
@@ -271,7 +272,7 @@ private fun SchoolInfoCard(school: School) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(

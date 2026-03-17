@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -39,7 +38,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,11 +45,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.junhee8649.cleancalendar.data.School
 import org.koin.androidx.compose.koinViewModel
 import java.util.UUID
-
-private val TdsTextPrimary = Color(0xFF191F28)
-private val TdsTextSecondary = Color(0xFF8B95A1)
-private val TdsBlue = Color(0xFF0064FF)
-private val TdsDivider = Color(0xFFE5E8EB)
 
 @Composable
 fun SchoolsScreen(
@@ -90,7 +83,7 @@ fun SchoolsScreen(
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     IconButton(onClick = { showAddDialog = true }) {
-                        Icon(Icons.Default.Add, contentDescription = "학교 추가", tint = TdsBlue)
+                        Icon(Icons.Default.Add, contentDescription = "학교 추가", tint = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
@@ -99,7 +92,7 @@ fun SchoolsScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = TdsBlue)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             } else if (uiState.schools.isEmpty()) {
                 Box(
@@ -108,32 +101,37 @@ fun SchoolsScreen(
                 ) {
                     Text(
                         "등록된 학교가 없습니다.",
-                        color = TdsTextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp
                     )
                 }
             } else {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surface
-                ) {
-                    LazyColumn {
-                        items(uiState.schools, key = { it.id }) { school ->
-                            SchoolItem(
-                                school = school,
-                                onClick = { onSchoolClick(school.id) },
-                                onDelete = { viewModel.deleteSchool(school.id) }
-                            )
-                            HorizontalDivider(
-                                color = TdsDivider,
-                                thickness = 0.5.dp
-                            )
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    item {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            Column {
+                                uiState.schools.forEach { school ->
+                                    SchoolItem(
+                                        school = school,
+                                        onClick = { onSchoolClick(school.id) },
+                                        onDelete = { viewModel.deleteSchool(school.id) }
+                                    )
+                                    HorizontalDivider(
+                                        color = MaterialTheme.colorScheme.outlineVariant,
+                                        thickness = 0.5.dp
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(14.dp))
+                            }
                         }
-                        item { Spacer(modifier = Modifier.height(14.dp)) }
                     }
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
                 }
             }
         }

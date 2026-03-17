@@ -71,6 +71,7 @@ fun CalendarScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { innerPadding ->
         Column(
@@ -118,6 +119,7 @@ fun CalendarScreen(
                     onSchoolClick = onNavigateToSchoolDetail
                 )
             }
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
