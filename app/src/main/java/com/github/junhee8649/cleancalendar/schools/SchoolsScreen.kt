@@ -19,8 +19,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,8 +30,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,7 +47,11 @@ import com.github.junhee8649.cleancalendar.data.School
 import org.koin.androidx.compose.koinViewModel
 import java.util.UUID
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val TdsTextPrimary = Color(0xFF191F28)
+private val TdsTextSecondary = Color(0xFF8B95A1)
+private val TdsBlue = Color(0xFF0064FF)
+private val TdsDivider = Color(0xFFE5E8EB)
+
 @Composable
 fun SchoolsScreen(
     onSchoolClick: (String) -> Unit,
@@ -68,39 +69,35 @@ fun SchoolsScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
+        Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+            if (!uiState.isLoading) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 28.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        "학교 목록",
-                        fontSize = 18.sp,
+                        "학교 ${uiState.schools.size}개",
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "학교 추가")
+                    IconButton(onClick = { showAddDialog = true }) {
+                        Icon(Icons.Default.Add, contentDescription = "학교 추가", tint = TdsBlue)
+                    }
+                }
             }
-        }
-    ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding)) {
             if (uiState.isLoading) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    CircularProgressIndicator(color = TdsBlue)
                 }
             } else if (uiState.schools.isEmpty()) {
                 Box(
@@ -108,8 +105,8 @@ fun SchoolsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "등록된 학교가 없습니다.\n+ 버튼으로 추가하세요.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        "등록된 학교가 없습니다.",
+                        color = TdsTextSecondary,
                         fontSize = 14.sp
                     )
                 }
@@ -130,11 +127,11 @@ fun SchoolsScreen(
                             )
                             HorizontalDivider(
                                 modifier = Modifier.padding(start = 16.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant,
+                                color = TdsDivider,
                                 thickness = 0.5.dp
                             )
                         }
-                        item { Spacer(modifier = Modifier.height(80.dp)) }
+                        item { Spacer(modifier = Modifier.height(14.dp)) }
                     }
                 }
             }
