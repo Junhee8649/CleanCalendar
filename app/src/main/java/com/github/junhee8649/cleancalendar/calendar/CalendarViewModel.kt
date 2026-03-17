@@ -43,11 +43,12 @@ class CalendarViewModel(
                 val tasks = taskRepository.getTasksByMonth(yearMonth.year, yearMonth.monthValue)
                 val schools = schoolRepository.getSchools()
                 val schoolNames = schools.associate { it.id to it.name }
-                val completedDates = tasks.mapNotNull { it.completedDate }.toSet()
+                val sortedTasks = tasks.sortedBy { schoolNames[it.schoolId] ?: "" }
+                val completedDates = sortedTasks.mapNotNull { it.completedDate }.toSet()
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        tasksInMonth = tasks,
+                        tasksInMonth = sortedTasks,
                         completedDates = completedDates,
                         schoolNames = schoolNames
                     )
@@ -72,18 +73,24 @@ class CalendarViewModel(
 
     fun toggleTaskCompleted(task: MaintenanceTask) {
         viewModelScope.launch(crashPreventionHandler) {
+            val updated = task.copy(
+                isCompleted = !task.isCompleted,
+                completedDate = if (!task.isCompleted) LocalDate.now() else null
+            )
+            // Optimistic update: 재조회 없이 현재 list에서 해당 item만 교체 (위치 유지)
+            _uiState.update { state ->
+                val updatedTasks = state.tasksInMonth.map { if (it.id == updated.id) updated else it }
+                val completedDates = updatedTasks.mapNotNull { it.completedDate }.toSet()
+                state.copy(tasksInMonth = updatedTasks, completedDates = completedDates)
+            }
             try {
-                val updated = task.copy(
-                    isCompleted = !task.isCompleted,
-                    completedDate = if (!task.isCompleted) LocalDate.now() else null
-                )
                 taskRepository.updateTask(updated)
+            } catch (e: Exception) {
+                // 실패 시 rollback (재조회)
                 val yearMonth = _uiState.value.currentYearMonth
                 val tasks = taskRepository.getTasksByMonth(yearMonth.year, yearMonth.monthValue)
                 val completedDates = tasks.mapNotNull { it.completedDate }.toSet()
-                _uiState.update { it.copy(tasksInMonth = tasks, completedDates = completedDates) }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(userMessage = e.message) }
+                _uiState.update { it.copy(tasksInMonth = tasks, completedDates = completedDates, userMessage = e.message) }
             }
         }
     }
