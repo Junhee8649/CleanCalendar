@@ -11,3 +11,6 @@ local.properties
 .claude/
 *.xlsx
 *.xls
+*.csv
+generate_csv.py
+.kotlin
