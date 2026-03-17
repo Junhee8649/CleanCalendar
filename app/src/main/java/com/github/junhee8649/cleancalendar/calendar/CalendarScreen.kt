@@ -14,9 +14,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -59,6 +59,7 @@ fun CalendarScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val scrollState = rememberScrollState()
 
     LaunchedEffect(uiState.userMessage) {
         uiState.userMessage?.let {
@@ -73,6 +74,7 @@ fun CalendarScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(scrollState)
                 .padding(innerPadding)
         ) {
             MonthHeader(
@@ -100,7 +102,7 @@ fun CalendarScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
+                        .padding(vertical = 48.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
@@ -111,8 +113,7 @@ fun CalendarScreen(
                     tasks = uiState.tasksInMonth,
                     schoolNames = uiState.schoolNames,
                     onToggleTask = { viewModel.toggleTaskCompleted(it) },
-                    onSchoolClick = onNavigateToSchoolDetail,
-                    modifier = Modifier.weight(1f)
+                    onSchoolClick = onNavigateToSchoolDetail
                 )
             }
         }
@@ -292,17 +293,16 @@ private fun TaskSection(
     tasks: List<MaintenanceTask>,
     schoolNames: Map<String, String>,
     onToggleTask: (MaintenanceTask) -> Unit,
-    onSchoolClick: (String) -> Unit,
-    modifier: Modifier = Modifier
+    onSchoolClick: (String) -> Unit
 ) {
     Surface(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -329,7 +329,7 @@ private fun TaskSection(
 
             if (tasks.isEmpty()) {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -339,22 +339,20 @@ private fun TaskSection(
                     )
                 }
             } else {
-                LazyColumn(modifier = Modifier.weight(1f)) {
-                    items(tasks, key = { it.id }) { task ->
-                        TaskItem(
-                            task = task,
-                            schoolName = schoolNames[task.schoolId] ?: task.schoolId,
-                            onToggle = { onToggleTask(task) },
-                            onSchoolClick = { onSchoolClick(task.schoolId) }
-                        )
-                        HorizontalDivider(
-                            modifier = Modifier.padding(start = 56.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant,
-                            thickness = 0.5.dp
-                        )
-                    }
-                    item { Spacer(modifier = Modifier.height(80.dp)) }
+                tasks.forEach { task ->
+                    TaskItem(
+                        task = task,
+                        schoolName = schoolNames[task.schoolId] ?: task.schoolId,
+                        onToggle = { onToggleTask(task) },
+                        onSchoolClick = { onSchoolClick(task.schoolId) }
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 56.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                        thickness = 0.5.dp
+                    )
                 }
+                Spacer(modifier = Modifier.height(80.dp))
             }
         }
     }
