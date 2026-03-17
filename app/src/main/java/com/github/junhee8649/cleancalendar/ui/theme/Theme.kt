@@ -1,55 +1,58 @@
 package com.github.junhee8649.cleancalendar.ui.theme
 
-import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
-
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
+import androidx.compose.ui.graphics.Color
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = TdsLightPrimary,
     onPrimary = Color.White,
+    primaryContainer = Color(0xFFD6E4FF),
+    onPrimaryContainer = TdsLightOnBackground,
+    secondary = TdsSaturday,
     onSecondary = Color.White,
+    tertiary = TdsGreen,
     onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    background = TdsLightBackground,
+    onBackground = TdsLightOnBackground,
+    surface = TdsLightSurface,
+    onSurface = TdsLightOnBackground,
+    surfaceVariant = TdsLightSurfaceVariant,
+    onSurfaceVariant = TdsLightOnSurfaceVariant,
+    outlineVariant = TdsLightOutlineVariant,
+    error = TdsRed,
+    onError = Color.White,
+)
+
+private val DarkColorScheme = darkColorScheme(
+    primary = TdsBlue,
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFF003399),
+    onPrimaryContainer = TdsDarkOnBackground,
+    secondary = TdsSaturday,
+    onSecondary = Color.White,
+    tertiary = TdsGreen,
+    onTertiary = Color.White,
+    background = TdsDarkBackground,
+    onBackground = TdsDarkOnBackground,
+    surface = TdsDarkSurface,
+    onSurface = TdsDarkOnBackground,
+    surfaceVariant = TdsDarkSurfaceVariant,
+    onSurfaceVariant = TdsLightOnSurfaceVariant,
+    outlineVariant = TdsDarkOutlineVariant,
+    error = TdsRed,
+    onError = Color.White,
 )
 
 @Composable
 fun CleanCalendarTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,

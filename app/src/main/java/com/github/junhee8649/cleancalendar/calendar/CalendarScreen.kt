@@ -25,6 +25,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -49,16 +50,6 @@ import org.koin.androidx.compose.koinViewModel
 import java.time.LocalDate
 import java.time.YearMonth
 
-private val TdsBackground = Color(0xFFF2F4F6)
-private val TdsBlue = Color(0xFF0064FF)
-private val TdsSurface = Color.White
-private val TdsTextPrimary = Color(0xFF191F28)
-private val TdsTextSecondary = Color(0xFF8B95A1)
-private val TdsDivider = Color(0xFFE5E8EB)
-private val TdsRed = Color(0xFFFF3B30)
-private val TdsSaturday = Color(0xFF3182F6)
-private val TdsGreen = Color(0xFF00C896)
-
 private val DAY_LABELS = listOf("일", "월", "화", "수", "목", "금", "토")
 
 @Composable
@@ -77,7 +68,6 @@ fun CalendarScreen(
     }
 
     Scaffold(
-        containerColor = TdsBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Column(
@@ -95,7 +85,7 @@ fun CalendarScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
                 shape = RoundedCornerShape(16.dp),
-                color = TdsSurface
+                color = MaterialTheme.colorScheme.surface
             ) {
                 MonthCalendarGrid(
                     yearMonth = uiState.currentYearMonth,
@@ -113,7 +103,7 @@ fun CalendarScreen(
                         .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = TdsBlue)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             } else {
                 TaskSection(
@@ -150,27 +140,27 @@ private fun MonthHeader(
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                 contentDescription = "이전 달",
-                tint = TdsTextPrimary
+                tint = MaterialTheme.colorScheme.onBackground
             )
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 "${yearMonth.year}년",
                 fontSize = 12.sp,
-                color = TdsTextSecondary
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 "${yearMonth.monthValue}월",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = TdsTextPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
         }
         IconButton(onClick = onNext) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "다음 달",
-                tint = TdsTextPrimary
+                tint = MaterialTheme.colorScheme.onBackground
             )
         }
     }
@@ -199,9 +189,9 @@ private fun MonthCalendarGrid(
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = when (label) {
-                        "일" -> TdsRed
-                        "토" -> TdsSaturday
-                        else -> TdsTextSecondary
+                        "일" -> MaterialTheme.colorScheme.error
+                        "토" -> MaterialTheme.colorScheme.secondary
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
                 )
             }
@@ -251,16 +241,17 @@ private fun DayCell(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val primary = MaterialTheme.colorScheme.primary
     val bgColor = when {
-        isSelected -> TdsBlue
-        isToday -> TdsBlue.copy(alpha = 0.12f)
+        isSelected -> primary
+        isToday -> primary.copy(alpha = 0.12f)
         else -> Color.Transparent
     }
     val textColor = when {
-        isSelected -> Color.White
-        isSunday -> TdsRed
-        isSaturday -> TdsSaturday
-        else -> TdsTextPrimary
+        isSelected -> MaterialTheme.colorScheme.onPrimary
+        isSunday -> MaterialTheme.colorScheme.error
+        isSaturday -> MaterialTheme.colorScheme.secondary
+        else -> MaterialTheme.colorScheme.onBackground
     }
 
     Box(
@@ -285,7 +276,10 @@ private fun DayCell(
                     modifier = Modifier
                         .size(4.dp)
                         .clip(CircleShape)
-                        .background(if (isCompleted) TdsGreen else TdsBlue)
+                        .background(
+                            if (isCompleted) MaterialTheme.colorScheme.tertiary
+                            else MaterialTheme.colorScheme.primary
+                        )
                 )
             }
         }
@@ -306,9 +300,9 @@ private fun TaskSection(
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-        color = TdsSurface
+        color = MaterialTheme.colorScheme.surface
     ) {
-        Column {
+        Column(modifier = Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -319,7 +313,7 @@ private fun TaskSection(
                     "${yearMonth.monthValue}월 일정",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TdsTextPrimary
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 if (tasks.isNotEmpty()) {
                     Spacer(modifier = Modifier.width(6.dp))
@@ -327,27 +321,25 @@ private fun TaskSection(
                         "${tasks.size}",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TdsBlue
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
-            HorizontalDivider(color = TdsDivider, thickness = 1.dp)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
 
             if (tasks.isEmpty()) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 40.dp),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         "이 달 일정이 없습니다.",
                         fontSize = 14.sp,
-                        color = TdsTextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
-                LazyColumn {
+                LazyColumn(modifier = Modifier.weight(1f)) {
                     items(tasks, key = { it.id }) { task ->
                         TaskItem(
                             task = task,
@@ -357,7 +349,7 @@ private fun TaskSection(
                         )
                         HorizontalDivider(
                             modifier = Modifier.padding(start = 56.dp),
-                            color = TdsDivider,
+                            color = MaterialTheme.colorScheme.outlineVariant,
                             thickness = 0.5.dp
                         )
                     }
@@ -386,14 +378,17 @@ private fun TaskItem(
             modifier = Modifier
                 .size(22.dp)
                 .clip(CircleShape)
-                .background(if (task.isCompleted) TdsBlue else TdsDivider)
+                .background(
+                    if (task.isCompleted) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.outlineVariant
+                )
                 .clickable { onToggle() },
             contentAlignment = Alignment.Center
         ) {
             if (task.isCompleted) {
                 Text(
                     "✓",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -405,13 +400,14 @@ private fun TaskItem(
                 schoolName,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = if (task.isCompleted) TdsTextSecondary else TdsTextPrimary,
+                color = if (task.isCompleted) MaterialTheme.colorScheme.onSurfaceVariant
+                        else MaterialTheme.colorScheme.onBackground,
                 textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null
             )
             Text(
                 task.taskDescription,
                 fontSize = 13.sp,
-                color = TdsTextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null
             )
             if (task.completedDate != null) {
@@ -419,7 +415,7 @@ private fun TaskItem(
                 Text(
                     "완료 ${task.completedDate}",
                     fontSize = 12.sp,
-                    color = TdsGreen
+                    color = MaterialTheme.colorScheme.tertiary
                 )
             }
         }

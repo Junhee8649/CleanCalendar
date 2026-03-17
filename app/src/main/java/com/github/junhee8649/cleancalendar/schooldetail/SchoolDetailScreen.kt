@@ -1,5 +1,7 @@
 package com.github.junhee8649.cleancalendar.schooldetail
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,17 +11,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,9 +37,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -47,7 +51,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.junhee8649.cleancalendar.data.MaintenanceTask
 import com.github.junhee8649.cleancalendar.data.School
@@ -81,25 +88,47 @@ fun SchoolDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(uiState.school?.name ?: "") },
+                title = {
+                    Text(
+                        uiState.school?.name ?: "",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "뒤로",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
                     }
                 },
                 actions = {
                     if (uiState.school != null) {
                         IconButton(onClick = { showEditDialog = true }) {
-                            Icon(Icons.Default.Edit, contentDescription = "수정")
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "수정",
+                                tint = MaterialTheme.colorScheme.onBackground
+                            )
                         }
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             if (uiState.school != null) {
-                FloatingActionButton(onClick = { showAddTaskDialog = true }) {
+                FloatingActionButton(
+                    onClick = { showAddTaskDialog = true },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
                     Icon(Icons.Default.Add, contentDescription = "일정 추가")
                 }
             }
@@ -107,9 +136,14 @@ fun SchoolDetailScreen(
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
             when {
-                uiState.isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                uiState.isLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
                 uiState.school == null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    Text("학교 정보를 불러올 수 없습니다.")
+                    Text(
+                        "학교 정보를 불러올 수 없습니다.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
                 else -> SchoolDetailContent(
                     school = uiState.school!!,
@@ -153,12 +187,26 @@ private fun SchoolDetailContent(
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
             SchoolInfoCard(school)
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            Text(
-                "유지보수 일정",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "유지보수 일정",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                if (tasks.isNotEmpty()) {
+                    Text(
+                        "  ${tasks.size}",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
         }
         if (tasks.isEmpty()) {
             item {
@@ -168,7 +216,11 @@ private fun SchoolDetailContent(
                         .padding(32.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("등록된 일정이 없습니다.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "등록된 일정이 없습니다.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 14.sp
+                    )
                 }
             }
         } else {
@@ -176,15 +228,33 @@ private fun SchoolDetailContent(
                 .groupBy { it.year }
             grouped.forEach { (year, yearTasks) ->
                 item {
-                    Text(
-                        "${year}년",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                    )
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .padding(top = 8.dp),
+                        shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
+                        Text(
+                            "${year}년",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                        )
+                    }
                 }
                 items(yearTasks, key = { it.id }) { task ->
                     TaskItem(task = task, onToggle = onToggleTask, onDelete = onDeleteTask)
+                }
+                item {
+                    Spacer(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp)
+                            .padding(horizontal = 16.dp)
+                    )
                 }
             }
         }
@@ -194,15 +264,16 @@ private fun SchoolDetailContent(
 
 @Composable
 private fun SchoolInfoCard(school: School) {
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             if (school.address.isNotBlank()) InfoRow("주소", school.address)
             if (school.contactName.isNotBlank()) InfoRow("담당자", school.contactName)
@@ -217,11 +288,16 @@ private fun SchoolInfoCard(school: School) {
 private fun InfoRow(label: String, value: String) {
     Row {
         Text(
-            "$label: ",
-            style = MaterialTheme.typography.bodyMedium,
+            "$label  ",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Text(value, style = MaterialTheme.typography.bodyMedium)
+        Text(
+            value,
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onBackground
+        )
     }
 }
 
@@ -231,33 +307,61 @@ private fun TaskItem(
     onToggle: (MaintenanceTask) -> Unit,
     onDelete: (String) -> Unit
 ) {
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 2.dp)
+            .padding(horizontal = 16.dp)
+            .background(MaterialTheme.colorScheme.surface)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Checkbox(
-                checked = task.isCompleted,
-                onCheckedChange = { onToggle(task) }
-            )
-            Column(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (task.isCompleted) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outlineVariant
+                    )
+                    .clickable { onToggle(task) },
+                contentAlignment = Alignment.Center
+            ) {
+                if (task.isCompleted) {
+                    Text(
+                        "✓",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 12.dp)
+            ) {
                 Text(
                     "${task.month}월",
-                    style = MaterialTheme.typography.labelMedium,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
-                Text(task.taskDescription, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    task.taskDescription,
+                    fontSize = 14.sp,
+                    color = if (task.isCompleted) MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.onBackground
+                )
                 if (task.completedDate != null) {
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        "완료: ${task.completedDate}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        "완료 ${task.completedDate}",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.tertiary
                     )
                 }
             }
@@ -269,6 +373,11 @@ private fun TaskItem(
                 )
             }
         }
+        HorizontalDivider(
+            modifier = Modifier.padding(start = 50.dp),
+            color = MaterialTheme.colorScheme.outlineVariant,
+            thickness = 0.5.dp
+        )
     }
 }
 
