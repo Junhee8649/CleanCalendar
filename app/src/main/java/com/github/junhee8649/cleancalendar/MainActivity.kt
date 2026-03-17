@@ -1,5 +1,6 @@
 package com.github.junhee8649.cleancalendar
 
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -41,15 +42,16 @@ private val TdsTextSecondary = Color(0xFF8B95A1)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val isDark = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.auto(
                 android.graphics.Color.TRANSPARENT,
                 android.graphics.Color.TRANSPARENT
             ),
-            navigationBarStyle = SystemBarStyle.auto(
-                android.graphics.Color.TRANSPARENT,
-                android.graphics.Color.TRANSPARENT
-            )
+            navigationBarStyle = if (isDark)
+                SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+            else
+                SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
         )
         setContent {
             CleanCalendarTheme {
@@ -64,52 +66,52 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     bottomBar = {
                         if (showBottomBar) {
-                            val navBarColor = if (isSystemInDarkTheme()) Color.Black else Color.White
+                            val navBarColor = if (isSystemInDarkTheme()) Color(0xFF1C1D1F) else Color.White
                             Column {
                                 Surface(
                                     shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
                                     color = navBarColor,
                                     shadowElevation = 8.dp,
                                 ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceEvenly
-                                ) {
-                                    BottomNavDestination.entries.forEach { destination ->
-                                        val selected = currentDestination?.hierarchy?.any {
-                                            it.route == destination.route
-                                        } == true
-                                        val itemColor = if (selected) TdsBlue else TdsTextSecondary
-                                        Column(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .clickable {
-                                                    navController.navigate(destination.route) {
-                                                        popUpTo(navController.graph.findStartDestination().id) {
-                                                            saveState = true
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceEvenly
+                                    ) {
+                                        BottomNavDestination.entries.forEach { destination ->
+                                            val selected = currentDestination?.hierarchy?.any {
+                                                it.route == destination.route
+                                            } == true
+                                            val itemColor = if (selected) TdsBlue else TdsTextSecondary
+                                            Column(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .clickable {
+                                                        navController.navigate(destination.route) {
+                                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                                saveState = true
+                                                            }
+                                                            launchSingleTop = true
+                                                            restoreState = true
                                                         }
-                                                        launchSingleTop = true
-                                                        restoreState = true
                                                     }
-                                                }
-                                                .padding(top = 4.dp, bottom = 0.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.spacedBy((-2).dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = destination.icon,
-                                                contentDescription = destination.label,
-                                                tint = itemColor
-                                            )
-                                            Text(
-                                                text = destination.label,
-                                                color = itemColor,
-                                                fontSize = 11.sp
-                                            )
+                                                    .padding(top = 4.dp, bottom = 0.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.spacedBy((-2).dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = destination.icon,
+                                                    contentDescription = destination.label,
+                                                    tint = itemColor
+                                                )
+                                                Text(
+                                                    text = destination.label,
+                                                    color = itemColor,
+                                                    fontSize = 11.sp
+                                                )
+                                            }
                                         }
                                     }
                                 }
-                                } // Surface
                                 Spacer(
                                     Modifier
                                         .windowInsetsBottomHeight(WindowInsets.navigationBars)
