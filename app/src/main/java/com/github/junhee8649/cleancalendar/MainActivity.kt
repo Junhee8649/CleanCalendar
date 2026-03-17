@@ -69,7 +69,7 @@ class MainActivity : ComponentActivity() {
                             val navBarColor = if (isSystemInDarkTheme()) Color(0xFF1C1D1F) else Color.White
                             Column {
                                 Surface(
-                                    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                                    shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
                                     color = navBarColor,
                                     shadowElevation = 8.dp,
                                 ) {
