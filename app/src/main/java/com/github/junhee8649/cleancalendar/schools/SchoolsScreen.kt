@@ -126,7 +126,6 @@ fun SchoolsScreen(
                                 onDelete = { viewModel.deleteSchool(school.id) }
                             )
                             HorizontalDivider(
-                                modifier = Modifier.padding(start = 16.dp),
                                 color = TdsDivider,
                                 thickness = 0.5.dp
                             )
