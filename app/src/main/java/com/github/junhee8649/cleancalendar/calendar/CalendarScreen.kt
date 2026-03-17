@@ -352,7 +352,6 @@ private fun TaskSection(
                         thickness = 0.5.dp
                     )
                 }
-                Spacer(modifier = Modifier.height(80.dp))
             }
         }
     }

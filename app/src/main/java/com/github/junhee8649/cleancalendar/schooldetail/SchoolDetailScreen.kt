@@ -27,7 +27,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -122,17 +121,6 @@ fun SchoolDetailScreen(
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        floatingActionButton = {
-            if (uiState.school != null) {
-                FloatingActionButton(
-                    onClick = { showAddTaskDialog = true },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "일정 추가")
-                }
-            }
-        }
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
             when {
@@ -149,7 +137,8 @@ fun SchoolDetailScreen(
                     school = uiState.school!!,
                     tasks = uiState.tasks,
                     onToggleTask = { viewModel.toggleTaskCompleted(it) },
-                    onDeleteTask = { viewModel.deleteTask(it) }
+                    onDeleteTask = { viewModel.deleteTask(it) },
+                    onAddTask = { showAddTaskDialog = true }
                 )
             }
         }
@@ -182,28 +171,41 @@ private fun SchoolDetailContent(
     school: School,
     tasks: List<MaintenanceTask>,
     onToggleTask: (MaintenanceTask) -> Unit,
-    onDeleteTask: (String) -> Unit
+    onDeleteTask: (String) -> Unit,
+    onAddTask: () -> Unit
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
             SchoolInfoCard(school)
             Spacer(modifier = Modifier.height(12.dp))
             Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 28.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "유지보수 일정",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                if (tasks.isNotEmpty()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "  ${tasks.size}",
-                        fontSize = 14.sp,
+                        "유지보수 일정",
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    if (tasks.isNotEmpty()) {
+                        Text(
+                            "  ${tasks.size}",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                IconButton(onClick = onAddTask) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "일정 추가",
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -232,33 +234,31 @@ private fun SchoolDetailContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
-                            .padding(top = 8.dp),
-                        shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
+                            .padding(top = 12.dp),
+                        shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surface
                     ) {
-                        Text(
-                            "${year}년",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
-                        )
+                        Column {
+                            Text(
+                                "${year}년",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                            )
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant,
+                                thickness = 0.5.dp
+                            )
+                            yearTasks.forEach { task ->
+                                TaskItem(task = task, onToggle = onToggleTask, onDelete = onDeleteTask)
+                            }
+                        }
                     }
-                }
-                items(yearTasks, key = { it.id }) { task ->
-                    TaskItem(task = task, onToggle = onToggleTask, onDelete = onDeleteTask)
-                }
-                item {
-                    Spacer(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(4.dp)
-                            .padding(horizontal = 16.dp)
-                    )
                 }
             }
         }
-        item { Spacer(modifier = Modifier.height(80.dp)) }
+        item { Spacer(modifier = Modifier.height(16.dp)) }
     }
 }
 
@@ -307,12 +307,7 @@ private fun TaskItem(
     onToggle: (MaintenanceTask) -> Unit,
     onDelete: (String) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .background(MaterialTheme.colorScheme.surface)
-    ) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
