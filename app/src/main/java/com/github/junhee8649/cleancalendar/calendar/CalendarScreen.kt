@@ -137,18 +137,10 @@ fun CalendarScreen(
                     CircularProgressIndicator(color = TdsBlue)
                 }
             } else if (selectedDate == null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 48.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "날짜를 선택해 일정을 확인하세요",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                AllTasksSection(
+                    tasksByDate = tasksByDate,
+                    schoolNames = uiState.schoolNames
+                )
             } else {
                 DateTaskSection(
                     selectedDate = selectedDate,
@@ -359,6 +351,91 @@ private fun DayCell(
 }
 
 @Composable
+private fun AllTasksSection(
+    tasksByDate: Map<LocalDate, List<MaintenanceTask>>,
+    schoolNames: Map<String, String>
+) {
+    val sortedDates = remember(tasksByDate) { tasksByDate.keys.sorted() }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "이번 달 전체 일정",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                if (sortedDates.isNotEmpty()) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        "${tasksByDate.values.sumOf { it.size }}",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TdsBlue
+                    )
+                }
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
+
+            if (sortedDates.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "이번 달 배정된 일정이 없습니다.",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                sortedDates.forEach { date ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            "${date.monthValue}월 ${date.dayOfMonth}일",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TdsBlue
+                        )
+                    }
+                    tasksByDate[date]?.forEach { task ->
+                        DateTaskItem(
+                            schoolName = schoolNames[task.schoolId] ?: task.schoolId,
+                            taskDescription = task.taskDescription,
+                            onRemove = {},
+                            showRemove = false
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                            thickness = 0.5.dp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun DateTaskSection(
     selectedDate: LocalDate,
     tasks: List<MaintenanceTask>,
@@ -451,7 +528,8 @@ private fun DateTaskSection(
 private fun DateTaskItem(
     schoolName: String,
     taskDescription: String,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    showRemove: Boolean = true
 ) {
     Row(
         modifier = Modifier
@@ -474,15 +552,17 @@ private fun DateTaskItem(
                 )
             }
         }
-        Text(
-            "되돌리기",
-            modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .clickable { onRemove() }
-                .padding(horizontal = 10.dp, vertical = 4.dp),
-            fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        if (showRemove) {
+            Text(
+                "되돌리기",
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .clickable { onRemove() }
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 

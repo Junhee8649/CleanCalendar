@@ -64,10 +64,12 @@ class CalendarViewModel(
     }
 
     fun previousMonth() {
+        _uiState.update { it.copy(selectedDate = null) }
         loadMonth(_uiState.value.currentYearMonth.minusMonths(1))
     }
 
     fun nextMonth() {
+        _uiState.update { it.copy(selectedDate = null) }
         loadMonth(_uiState.value.currentYearMonth.plusMonths(1))
     }
 
