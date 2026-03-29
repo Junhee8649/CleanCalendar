@@ -228,7 +228,9 @@ private fun DeleteSchoolConfirmDialog(
         text = {
             Text(
                 "${school.name}을(를) 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.",
-                fontSize = 15.sp
+                fontSize = 15.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
         },
         confirmButton = {

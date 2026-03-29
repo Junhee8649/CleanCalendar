@@ -411,7 +411,9 @@ private fun DeleteTaskConfirmDialog(
         text = {
             Text(
                 "${task.year}년 ${task.month}월 작업을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.",
-                fontSize = 15.sp
+                fontSize = 15.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
         },
         confirmButton = {
