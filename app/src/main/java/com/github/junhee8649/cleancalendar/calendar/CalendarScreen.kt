@@ -5,33 +5,39 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,7 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,8 +57,13 @@ import org.koin.androidx.compose.koinViewModel
 import java.time.LocalDate
 import java.time.YearMonth
 
+private val TdsBlue = Color(0xFF0064FF)
+private val TdsRed = Color(0xFFFF3B30)
+private val TdsSaturday = Color(0xFF3182F6)
+
 private val DAY_LABELS = listOf("일", "월", "화", "수", "목", "금", "토")
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
     onNavigateToSchoolDetail: (String) -> Unit,
@@ -61,6 +72,21 @@ fun CalendarScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
+
+    val tasksByDate = remember(uiState.tasksInMonth) {
+        uiState.tasksInMonth
+            .filter { it.scheduledDate != null }
+            .groupBy { it.scheduledDate!! }
+    }
+    val selectedDate = uiState.selectedDate
+    val tasksForSelectedDate = selectedDate?.let { tasksByDate[it] } ?: emptyList()
+
+    // 미배정 task 가나다순 정렬
+    val unscheduledTasks = remember(uiState.tasksInMonth, uiState.schoolNames) {
+        uiState.tasksInMonth
+            .filter { it.scheduledDate == null }
+            .sortedBy { uiState.schoolNames[it.schoolId] ?: "" }
+    }
 
     LaunchedEffect(uiState.userMessage) {
         uiState.userMessage?.let {
@@ -94,9 +120,9 @@ fun CalendarScreen(
             ) {
                 MonthCalendarGrid(
                     yearMonth = uiState.currentYearMonth,
-                    selectedDate = uiState.selectedDate,
-                    completedDates = uiState.completedDates,
-                    hasTaskDates = buildHasTaskDates(uiState.tasksInMonth, uiState.currentYearMonth),
+                    selectedDate = selectedDate,
+                    tasksByDate = tasksByDate,
+                    schoolNames = uiState.schoolNames,
                     onDateClick = { viewModel.selectDate(it) }
                 )
             }
@@ -108,24 +134,45 @@ fun CalendarScreen(
                         .padding(vertical = 48.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    CircularProgressIndicator(color = TdsBlue)
+                }
+            } else if (selectedDate == null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "날짜를 선택해 일정을 확인하세요",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             } else {
-                TaskSection(
-                    yearMonth = uiState.currentYearMonth,
-                    tasks = uiState.tasksInMonth,
+                DateTaskSection(
+                    selectedDate = selectedDate,
+                    tasks = tasksForSelectedDate,
                     schoolNames = uiState.schoolNames,
-                    onToggleTask = { viewModel.toggleTaskCompleted(it) },
-                    onSchoolClick = onNavigateToSchoolDetail
+                    onAddClick = { viewModel.showTaskPicker() },
+                    onRemoveTask = { viewModel.removeTaskFromDate(it) }
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
-}
 
-private fun buildHasTaskDates(tasks: List<MaintenanceTask>, yearMonth: YearMonth): Set<LocalDate> {
-    return if (tasks.isNotEmpty()) setOf(yearMonth.atDay(1)) else emptySet()
+    if (uiState.showTaskPicker) {
+        TaskPickerBottomSheet(
+            tasks = unscheduledTasks,
+            schoolNames = uiState.schoolNames,
+            onDismiss = { viewModel.hideTaskPicker() },
+            onTaskSelect = { taskId ->
+                viewModel.addTaskForDate(taskId)
+                viewModel.hideTaskPicker()
+            }
+        )
+    }
 }
 
 @Composable
@@ -174,9 +221,9 @@ private fun MonthHeader(
 @Composable
 private fun MonthCalendarGrid(
     yearMonth: YearMonth,
-    selectedDate: LocalDate,
-    completedDates: Set<LocalDate>,
-    hasTaskDates: Set<LocalDate>,
+    selectedDate: LocalDate?,
+    tasksByDate: Map<LocalDate, List<MaintenanceTask>>,
+    schoolNames: Map<String, String>,
     onDateClick: (LocalDate) -> Unit
 ) {
     val firstDay = yearMonth.atDay(1)
@@ -184,7 +231,7 @@ private fun MonthCalendarGrid(
     val daysInMonth = yearMonth.lengthOfMonth()
     val today = LocalDate.now()
 
-    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)) {
+    Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp)) {
         Row(modifier = Modifier.fillMaxWidth()) {
             DAY_LABELS.forEach { label ->
                 Text(
@@ -194,14 +241,14 @@ private fun MonthCalendarGrid(
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = when (label) {
-                        "일" -> MaterialTheme.colorScheme.error
-                        "토" -> MaterialTheme.colorScheme.secondary
+                        "일" -> TdsRed
+                        "토" -> TdsSaturday
                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
                 )
             }
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         val totalCells = startOffset + daysInMonth
         val rows = (totalCells + 6) / 7
@@ -212,17 +259,22 @@ private fun MonthCalendarGrid(
                 repeat(7) { col ->
                     val cellIndex = row * 7 + col
                     if (cellIndex < startOffset || dayCounter > daysInMonth) {
-                        Spacer(modifier = Modifier.weight(1f).aspectRatio(1f))
+                        Spacer(
+                            modifier = Modifier
+                                .weight(1f)
+                                .defaultMinSize(minHeight = 64.dp)
+                        )
                     } else {
                         val date = yearMonth.atDay(dayCounter)
+                        val tasksOnDate = tasksByDate[date] ?: emptyList()
                         DayCell(
                             day = dayCounter,
-                            isSelected = date == selectedDate,
+                            isSelected = selectedDate != null && date == selectedDate,
                             isToday = date == today,
-                            isCompleted = completedDates.contains(date),
-                            hasTask = hasTaskDates.contains(date),
                             isSunday = col == 0,
                             isSaturday = col == 6,
+                            tasksOnDate = tasksOnDate,
+                            schoolNames = schoolNames,
                             onClick = { onDateClick(date) },
                             modifier = Modifier.weight(1f)
                         )
@@ -239,52 +291,67 @@ private fun DayCell(
     day: Int,
     isSelected: Boolean,
     isToday: Boolean,
-    isCompleted: Boolean,
-    hasTask: Boolean,
     isSunday: Boolean,
     isSaturday: Boolean,
+    tasksOnDate: List<MaintenanceTask>,
+    schoolNames: Map<String, String>,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val primary = MaterialTheme.colorScheme.primary
     val bgColor = when {
-        isSelected -> primary
-        isToday -> primary.copy(alpha = 0.12f)
+        isSelected -> TdsBlue
+        isToday -> TdsBlue.copy(alpha = 0.10f)
         else -> Color.Transparent
     }
-    val textColor = when {
-        isSelected -> MaterialTheme.colorScheme.onPrimary
-        isSunday -> MaterialTheme.colorScheme.error
-        isSaturday -> MaterialTheme.colorScheme.secondary
+    val dateTextColor = when {
+        isSelected -> Color.White
+        isSunday -> TdsRed
+        isSaturday -> TdsSaturday
         else -> MaterialTheme.colorScheme.onBackground
     }
 
-    Box(
+    Column(
         modifier = modifier
-            .aspectRatio(1f)
+            .defaultMinSize(minHeight = 64.dp)
             .padding(2.dp)
-            .clip(CircleShape)
+            .clip(RoundedCornerShape(8.dp))
             .background(bgColor)
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
+            .clickable { onClick() }
+            .padding(horizontal = 2.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                day.toString(),
-                fontSize = 14.sp,
-                fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal,
-                color = textColor
-            )
-            if (hasTask || isCompleted) {
-                Spacer(modifier = Modifier.height(1.dp))
-                Box(
-                    modifier = Modifier
-                        .size(4.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (isCompleted) MaterialTheme.colorScheme.tertiary
-                            else MaterialTheme.colorScheme.primary
-                        )
+        Text(
+            day.toString(),
+            fontSize = 13.sp,
+            fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal,
+            color = dateTextColor
+        )
+        if (tasksOnDate.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(2.dp))
+            val maxVisible = 2
+            val visibleTasks = tasksOnDate.take(maxVisible)
+            val overflow = tasksOnDate.size - maxVisible
+
+            visibleTasks.forEach { task ->
+                val abbr = (schoolNames[task.schoolId] ?: "").take(3)
+                Text(
+                    abbr,
+                    fontSize = 8.sp,
+                    color = if (isSelected) Color.White.copy(alpha = 0.9f) else TdsBlue,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Clip,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            if (overflow > 0) {
+                Text(
+                    "+$overflow",
+                    fontSize = 8.sp,
+                    color = if (isSelected) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
@@ -292,12 +359,12 @@ private fun DayCell(
 }
 
 @Composable
-private fun TaskSection(
-    yearMonth: YearMonth,
+private fun DateTaskSection(
+    selectedDate: LocalDate,
     tasks: List<MaintenanceTask>,
     schoolNames: Map<String, String>,
-    onToggleTask: (MaintenanceTask) -> Unit,
-    onSchoolClick: (String) -> Unit
+    onAddClick: () -> Unit,
+    onRemoveTask: (String) -> Unit
 ) {
     Surface(
         modifier = Modifier
@@ -311,21 +378,39 @@ private fun TaskSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    "${yearMonth.monthValue}월 일정",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                if (tasks.isNotEmpty()) {
-                    Spacer(modifier = Modifier.width(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "${tasks.size}",
-                        fontSize = 14.sp,
+                        "${selectedDate.monthValue}월 ${selectedDate.dayOfMonth}일",
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    if (tasks.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            "${tasks.size}",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TdsBlue
+                        )
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(TdsBlue)
+                        .clickable { onAddClick() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = "일정 추가",
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
@@ -333,25 +418,26 @@ private fun TaskSection(
 
             if (tasks.isEmpty()) {
                 Box(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "이 달 일정이 없습니다.",
+                        "이 날 배정된 학교가 없습니다.",
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
                 tasks.forEach { task ->
-                    TaskItem(
-                        task = task,
+                    DateTaskItem(
                         schoolName = schoolNames[task.schoolId] ?: task.schoolId,
-                        onToggle = { onToggleTask(task) },
-                        onSchoolClick = { onSchoolClick(task.schoolId) }
+                        taskDescription = task.taskDescription,
+                        onRemove = { onRemoveTask(task.id) }
                     )
                     HorizontalDivider(
-                        modifier = Modifier.padding(start = 56.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp),
                         color = MaterialTheme.colorScheme.outlineVariant,
                         thickness = 0.5.dp
                     )
@@ -362,62 +448,117 @@ private fun TaskSection(
 }
 
 @Composable
-private fun TaskItem(
-    task: MaintenanceTask,
+private fun DateTaskItem(
     schoolName: String,
-    onToggle: () -> Unit,
-    onSchoolClick: () -> Unit
+    taskDescription: String,
+    onRemove: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onSchoolClick() }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(22.dp)
-                .clip(CircleShape)
-                .background(
-                    if (task.isCompleted) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.outlineVariant
-                )
-                .clickable { onToggle() },
-            contentAlignment = Alignment.Center
-        ) {
-            if (task.isCompleted) {
-                Text(
-                    "✓",
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-        Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 schoolName,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = if (task.isCompleted) MaterialTheme.colorScheme.onSurfaceVariant
-                        else MaterialTheme.colorScheme.onBackground,
-                textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null
+                color = MaterialTheme.colorScheme.onBackground
             )
-            Text(
-                task.taskDescription,
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null
-            )
-            if (task.completedDate != null) {
-                Spacer(modifier = Modifier.height(2.dp))
+            if (taskDescription.isNotBlank()) {
                 Text(
-                    "완료 ${task.completedDate}",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.tertiary
+                    taskDescription,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
+        Text(
+            "되돌리기",
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .clickable { onRemove() }
+                .padding(horizontal = 10.dp, vertical = 4.dp),
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TaskPickerBottomSheet(
+    tasks: List<MaintenanceTask>,
+    schoolNames: Map<String, String>,
+    onDismiss: () -> Unit,
+    onTaskSelect: (String) -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState()
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                "일정 선택",
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            if (tasks.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 40.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "배정 가능한 일정이 없습니다.",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                LazyColumn {
+                    items(tasks, key = { it.id }) { task ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onTaskSelect(task.id) }
+                                .padding(horizontal = 20.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    schoolNames[task.schoolId] ?: task.schoolId,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                if (task.taskDescription.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        task.taskDescription,
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 20.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                            thickness = 0.5.dp
+                        )
+                    }
+                    item { Spacer(modifier = Modifier.height(32.dp)) }
+                }
             }
         }
     }

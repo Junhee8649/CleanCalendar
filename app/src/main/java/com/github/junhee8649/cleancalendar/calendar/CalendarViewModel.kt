@@ -21,12 +21,11 @@ class CalendarViewModel(
     data class UiState(
         val isLoading: Boolean = false,
         val currentYearMonth: YearMonth = YearMonth.now(),
-        val selectedDate: LocalDate = LocalDate.now(),
+        val selectedDate: LocalDate? = null,
         val tasksInMonth: List<MaintenanceTask> = emptyList(),
-        // completedDate -> task ids (for dot rendering)
-        val completedDates: Set<LocalDate> = emptySet(),
         val schoolNames: Map<String, String> = emptyMap(),
-        val userMessage: String? = null
+        val userMessage: String? = null,
+        val showTaskPicker: Boolean = false
     )
 
     private val _uiState = MutableStateFlow(UiState())
@@ -36,7 +35,7 @@ class CalendarViewModel(
         loadMonth(YearMonth.now())
     }
 
-    fun loadMonth(yearMonth: YearMonth) {
+    private fun loadMonth(yearMonth: YearMonth) {
         viewModelScope.launch(crashPreventionHandler) {
             _uiState.update { it.copy(isLoading = true, currentYearMonth = yearMonth) }
             try {
@@ -44,12 +43,10 @@ class CalendarViewModel(
                 val schools = schoolRepository.getSchools()
                 val schoolNames = schools.associate { it.id to it.name }
                 val sortedTasks = tasks.sortedBy { schoolNames[it.schoolId] ?: "" }
-                val completedDates = sortedTasks.mapNotNull { it.completedDate }.toSet()
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         tasksInMonth = sortedTasks,
-                        completedDates = completedDates,
                         schoolNames = schoolNames
                     )
                 }
@@ -60,7 +57,10 @@ class CalendarViewModel(
     }
 
     fun selectDate(date: LocalDate) {
-        _uiState.update { it.copy(selectedDate = date) }
+        _uiState.update { state ->
+            val newDate = if (state.selectedDate == date) null else date
+            state.copy(selectedDate = newDate)
+        }
     }
 
     fun previousMonth() {
@@ -71,26 +71,45 @@ class CalendarViewModel(
         loadMonth(_uiState.value.currentYearMonth.plusMonths(1))
     }
 
-    fun toggleTaskCompleted(task: MaintenanceTask) {
+    fun showTaskPicker() {
+        _uiState.update { it.copy(showTaskPicker = true) }
+    }
+
+    fun hideTaskPicker() {
+        _uiState.update { it.copy(showTaskPicker = false) }
+    }
+
+    // 미배정 task를 선택한 날짜에 배정 (UPDATE)
+    fun addTaskForDate(taskId: String) {
+        val date = _uiState.value.selectedDate ?: return
+        val task = _uiState.value.tasksInMonth.firstOrNull { it.id == taskId } ?: return
+        val updated = task.copy(scheduledDate = date)
         viewModelScope.launch(crashPreventionHandler) {
-            val updated = task.copy(
-                isCompleted = !task.isCompleted,
-                completedDate = if (!task.isCompleted) LocalDate.now() else null
-            )
-            // Optimistic update: 재조회 없이 현재 list에서 해당 item만 교체 (위치 유지)
             _uiState.update { state ->
-                val updatedTasks = state.tasksInMonth.map { if (it.id == updated.id) updated else it }
-                val completedDates = updatedTasks.mapNotNull { it.completedDate }.toSet()
-                state.copy(tasksInMonth = updatedTasks, completedDates = completedDates)
+                state.copy(tasksInMonth = state.tasksInMonth.map { if (it.id == taskId) updated else it })
             }
             try {
                 taskRepository.updateTask(updated)
             } catch (e: Exception) {
-                // 실패 시 rollback (재조회)
-                val yearMonth = _uiState.value.currentYearMonth
-                val tasks = taskRepository.getTasksByMonth(yearMonth.year, yearMonth.monthValue)
-                val completedDates = tasks.mapNotNull { it.completedDate }.toSet()
-                _uiState.update { it.copy(tasksInMonth = tasks, completedDates = completedDates, userMessage = e.message) }
+                loadMonth(_uiState.value.currentYearMonth)
+                _uiState.update { it.copy(userMessage = e.message) }
+            }
+        }
+    }
+
+    // scheduledDate = null 로 되돌림 (UPDATE)
+    fun removeTaskFromDate(taskId: String) {
+        val task = _uiState.value.tasksInMonth.firstOrNull { it.id == taskId } ?: return
+        val updated = task.copy(scheduledDate = null)
+        viewModelScope.launch(crashPreventionHandler) {
+            _uiState.update { state ->
+                state.copy(tasksInMonth = state.tasksInMonth.map { if (it.id == taskId) updated else it })
+            }
+            try {
+                taskRepository.updateTask(updated)
+            } catch (e: Exception) {
+                loadMonth(_uiState.value.currentYearMonth)
+                _uiState.update { it.copy(userMessage = e.message) }
             }
         }
     }

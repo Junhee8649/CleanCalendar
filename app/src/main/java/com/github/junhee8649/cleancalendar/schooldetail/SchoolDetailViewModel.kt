@@ -63,7 +63,8 @@ class SchoolDetailViewModel(
                     taskDescription = taskDescription,
                     isCompleted = false,
                     completedDate = null,
-                    notes = ""
+                    notes = "",
+                    scheduledDate = null
                 )
                 taskRepository.addTask(task)
                 val tasks = taskRepository.getTasksBySchool(schoolId)

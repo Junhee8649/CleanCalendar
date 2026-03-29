@@ -10,5 +10,6 @@ data class MaintenanceTask(
     val taskDescription: String,
     val isCompleted: Boolean,
     val completedDate: LocalDate?,
-    val notes: String
+    val notes: String,
+    val scheduledDate: LocalDate?
 )

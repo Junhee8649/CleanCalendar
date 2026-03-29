@@ -12,5 +12,6 @@ data class MaintenanceTaskDto(
     @SerialName("task_description") val taskDescription: String,
     @SerialName("is_completed") val isCompleted: Boolean,
     @SerialName("completed_date") val completedDate: String?,
-    val notes: String
+    val notes: String,
+    @SerialName("scheduled_date") val scheduledDate: String?
 )

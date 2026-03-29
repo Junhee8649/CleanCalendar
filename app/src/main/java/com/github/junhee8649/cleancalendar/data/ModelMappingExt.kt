@@ -32,7 +32,8 @@ fun MaintenanceTaskDto.toTask(): MaintenanceTask = MaintenanceTask(
     taskDescription = taskDescription,
     isCompleted = isCompleted,
     completedDate = completedDate?.let { LocalDate.parse(it) },
-    notes = notes
+    notes = notes,
+    scheduledDate = scheduledDate?.let { LocalDate.parse(it) }
 )
 
 fun MaintenanceTask.toDto(): MaintenanceTaskDto = MaintenanceTaskDto(
@@ -43,5 +44,6 @@ fun MaintenanceTask.toDto(): MaintenanceTaskDto = MaintenanceTaskDto(
     taskDescription = taskDescription,
     isCompleted = isCompleted,
     completedDate = completedDate?.toString(),
-    notes = notes
+    notes = notes,
+    scheduledDate = scheduledDate?.toString()
 )
