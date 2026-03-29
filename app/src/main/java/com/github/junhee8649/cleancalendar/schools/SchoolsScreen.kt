@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,6 +55,7 @@ fun SchoolsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showAddDialog by remember { mutableStateOf(false) }
+    var schoolToDelete by remember { mutableStateOf<School?>(null) }
 
     LaunchedEffect(uiState.userMessage) {
         uiState.userMessage?.let {
@@ -120,7 +122,7 @@ fun SchoolsScreen(
                                     SchoolItem(
                                         school = school,
                                         onClick = { onSchoolClick(school.id) },
-                                        onDelete = { viewModel.deleteSchool(school.id) }
+                                        onDelete = { schoolToDelete = school }
                                     )
                                     HorizontalDivider(
                                         color = MaterialTheme.colorScheme.outlineVariant,
@@ -144,6 +146,17 @@ fun SchoolsScreen(
                 viewModel.addSchool(school)
                 showAddDialog = false
             }
+        )
+    }
+
+    schoolToDelete?.let { school ->
+        DeleteSchoolConfirmDialog(
+            school = school,
+            onConfirm = {
+                viewModel.deleteSchool(school.id)
+                schoolToDelete = null
+            },
+            onDismiss = { schoolToDelete = null }
         )
     }
 }
@@ -195,6 +208,38 @@ private fun SchoolItem(
             )
         }
     }
+}
+
+@Composable
+private fun DeleteSchoolConfirmDialog(
+    school: School,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "학교 삭제",
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+        },
+        text = {
+            Text(
+                "${school.name}을(를) 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.",
+                fontSize = 15.sp
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("삭제", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("취소") }
+        }
+    )
 }
 
 @Composable

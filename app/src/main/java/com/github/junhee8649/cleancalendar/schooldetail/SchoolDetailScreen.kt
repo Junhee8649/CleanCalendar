@@ -53,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -75,6 +76,7 @@ fun SchoolDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showEditDialog by remember { mutableStateOf(false) }
     var showAddTaskDialog by remember { mutableStateOf(false) }
+    var taskToDelete by remember { mutableStateOf<MaintenanceTask?>(null) }
 
     LaunchedEffect(schoolId) { viewModel.loadData(schoolId) }
 
@@ -141,7 +143,7 @@ fun SchoolDetailScreen(
                     school = uiState.school!!,
                     tasks = uiState.tasks,
                     onToggleTask = { viewModel.toggleTaskCompleted(it) },
-                    onDeleteTask = { viewModel.deleteTask(it) },
+                    onDeleteTask = { taskId -> taskToDelete = uiState.tasks.find { it.id == taskId } },
                     onAddTask = { showAddTaskDialog = true }
                 )
             }
@@ -166,6 +168,17 @@ fun SchoolDetailScreen(
                 viewModel.addTask(schoolId, year, month, description)
                 showAddTaskDialog = false
             }
+        )
+    }
+
+    taskToDelete?.let { task ->
+        DeleteTaskConfirmDialog(
+            task = task,
+            onConfirm = {
+                viewModel.deleteTask(task.id)
+                taskToDelete = null
+            },
+            onDismiss = { taskToDelete = null }
         )
     }
 }
@@ -378,6 +391,38 @@ private fun TaskItem(
             thickness = 0.5.dp
         )
     }
+}
+
+@Composable
+private fun DeleteTaskConfirmDialog(
+    task: MaintenanceTask,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "작업 삭제",
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+        },
+        text = {
+            Text(
+                "${task.year}년 ${task.month}월 작업을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.",
+                fontSize = 15.sp
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("삭제", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("취소") }
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
