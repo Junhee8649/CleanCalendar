@@ -3,13 +3,16 @@ package com.github.junhee8649.cleancalendar.data
 import com.github.junhee8649.cleancalendar.data.source.network.SchoolDto
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Order
 
 class DefaultSchoolRepository(
     private val supabase: SupabaseClient
 ) : SchoolRepository {
 
     override suspend fun getSchools(): List<School> =
-        supabase.from("schools").select().decodeList<SchoolDto>().map { it.toSchool() }
+        supabase.from("schools").select {
+            order("name", Order.ASCENDING)
+        }.decodeList<SchoolDto>().map { it.toSchool() }
 
     override suspend fun getSchool(id: String): School? =
         supabase.from("schools").select {
