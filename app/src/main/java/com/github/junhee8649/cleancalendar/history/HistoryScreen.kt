@@ -1,5 +1,6 @@
 package com.github.junhee8649.cleancalendar.history
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,18 +21,24 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,18 +48,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.github.junhee8649.cleancalendar.data.School
 import com.github.junhee8649.cleancalendar.data.WorkLog
 import org.koin.androidx.compose.koinViewModel
 
@@ -66,6 +74,24 @@ fun HistoryScreen(
     val userMessage by viewModel.userMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var workLogToDelete by remember { mutableStateOf<WorkLog?>(null) }
+
+    val filteredSchools = remember(uiState.schools, uiState.searchQuery) {
+        if (uiState.searchQuery.isBlank()) uiState.schools
+        else uiState.schools.filter { it.name.contains(uiState.searchQuery, ignoreCase = true) }
+    }
+    val workLogCountBySchool = remember(uiState.workLogs) {
+        uiState.workLogs.groupingBy { it.schoolId }.eachCount()
+    }
+    val selectedSchoolWorkLogs = remember(uiState.workLogs, uiState.selectedSchoolId) {
+        uiState.workLogs.filter { it.schoolId == uiState.selectedSchoolId }
+    }
+    val selectedSchool = remember(uiState.schools, uiState.selectedSchoolId) {
+        uiState.schools.find { it.id == uiState.selectedSchoolId }
+    }
+
+    BackHandler(enabled = uiState.selectedSchoolId != null) {
+        viewModel.clearSchoolSelection()
+    }
 
     LaunchedEffect(userMessage) {
         userMessage?.let {
@@ -91,53 +117,26 @@ fun HistoryScreen(
             ) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
+        } else if (uiState.selectedSchoolId == null) {
+            SchoolListView(
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+                schools = filteredSchools,
+                workLogCountBySchool = workLogCountBySchool,
+                searchQuery = uiState.searchQuery,
+                onSearchQueryChange = viewModel::onSearchQueryChange,
+                onSchoolClick = viewModel::selectSchool,
+                onAddClick = onAddClick
+            )
         } else {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(innerPadding)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 28.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "히스토리",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    IconButton(onClick = onAddClick) {
-                        Icon(Icons.Default.Add, contentDescription = "작업 일지 추가", tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-                if (uiState.workLogs.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "작업 일지가 없습니다.\n+ 버튼으로 첫 일지를 작성해보세요.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(uiState.workLogs, key = { it.id }) { workLog ->
-                            WorkLogCard(
-                                workLog = workLog,
-                                onImageClick = { index -> onImageClick(workLog.id, index) },
-                                onDeleteClick = { workLogToDelete = workLog }
-                            )
-                        }
-                    }
-                }
-            }
+            WorkLogListView(
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+                schoolName = selectedSchool?.name ?: "",
+                workLogs = selectedSchoolWorkLogs,
+                onBack = viewModel::clearSchoolSelection,
+                onAddClick = onAddClick,
+                onImageClick = onImageClick,
+                onDeleteClick = { workLogToDelete = it }
+            )
         }
     }
 
@@ -150,6 +149,194 @@ fun HistoryScreen(
             },
             onDismiss = { workLogToDelete = null }
         )
+    }
+}
+
+@Composable
+private fun SchoolListView(
+    modifier: Modifier = Modifier,
+    schools: List<School>,
+    workLogCountBySchool: Map<String, Int>,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onSchoolClick: (String) -> Unit,
+    onAddClick: () -> Unit
+) {
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 28.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "히스토리",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            IconButton(onClick = onAddClick) {
+                Icon(Icons.Default.Add, contentDescription = "작업 일지 추가", tint = MaterialTheme.colorScheme.primary)
+            }
+        }
+
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = onSearchQueryChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            placeholder = { Text("학교 검색", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+            leadingIcon = {
+                Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { onSearchQueryChange("") }) {
+                        Icon(Icons.Default.Close, contentDescription = "검색 초기화", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp)
+        )
+
+        if (schools.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    if (searchQuery.isBlank()) "등록된 학교가 없습니다." else "검색 결과가 없습니다.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 1.dp
+            ) {
+                LazyColumn {
+                    itemsIndexed(schools) { index, school ->
+                        SchoolHistoryItem(
+                            school = school,
+                            count = workLogCountBySchool[school.id] ?: 0,
+                            onClick = { onSchoolClick(school.id) }
+                        )
+                        if (index < schools.lastIndex) {
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant,
+                                thickness = 0.5.dp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SchoolHistoryItem(
+    school: School,
+    count: Int,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = school.name,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = "${count}건",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun WorkLogListView(
+    modifier: Modifier = Modifier,
+    schoolName: String,
+    workLogs: List<WorkLog>,
+    onBack: () -> Unit,
+    onAddClick: () -> Unit,
+    onImageClick: (workLogId: String, imageIndex: Int) -> Unit,
+    onDeleteClick: (WorkLog) -> Unit
+) {
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 4.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "뒤로",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
+            }
+            Text(
+                text = schoolName,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(onClick = onAddClick) {
+                Icon(Icons.Default.Add, contentDescription = "작업 일지 추가", tint = MaterialTheme.colorScheme.primary)
+            }
+        }
+
+        if (workLogs.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    "작업 일지가 없습니다.\n+ 버튼으로 첫 일지를 작성해보세요.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(workLogs, key = { it.id }) { workLog ->
+                    WorkLogCard(
+                        workLog = workLog,
+                        onImageClick = { index -> onImageClick(workLog.id, index) },
+                        onDeleteClick = { onDeleteClick(workLog) }
+                    )
+                }
+            }
+        }
     }
 }
 

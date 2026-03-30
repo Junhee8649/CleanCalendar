@@ -38,7 +38,7 @@ object AppModule {
         viewModel { CalendarViewModel(get(), get()) }
         viewModel { SchoolsViewModel(get()) }
         viewModel { SchoolDetailViewModel(get(), get()) }
-        viewModel { HistoryViewModel(get()) }
+        viewModel { HistoryViewModel(get(), get()) }
         viewModel { WorkLogFormViewModel(get(), get()) }
         viewModel { (workLogId: String) -> ImageViewerViewModel(workLogId, get()) }
     }
