@@ -22,7 +22,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -336,21 +339,23 @@ fun WorkLogFormScreen(
                         )
                     }
                     Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        uiState.selectedImageUris.forEach { uri ->
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(uiState.selectedImageUris) { uri ->
                             ImageThumbnail(
                                 uri = uri,
                                 onRemove = { viewModel.removeImageUri(uri) }
                             )
                         }
                         if (uiState.selectedImageUris.size < 5) {
-                            AddImageButton(
-                                onClick = {
-                                    photoPicker.launch(
-                                        PickVisualMediaRequest(PickVisualMedia.ImageOnly)
-                                    )
-                                }
-                            )
+                            item {
+                                AddImageButton(
+                                    onClick = {
+                                        photoPicker.launch(
+                                            PickVisualMediaRequest(PickVisualMedia.ImageOnly)
+                                        )
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -398,18 +403,19 @@ private fun ImageThumbnail(uri: Uri, onRemove: () -> Unit) {
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         )
-        IconButton(
-            onClick = onRemove,
+        Box(
             modifier = Modifier
-                .size(22.dp)
+                .size(20.dp)
                 .align(Alignment.TopEnd)
-                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(11.dp))
+                .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                .clickable(onClick = onRemove),
+            contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.Default.Close,
                 contentDescription = "삭제",
                 tint = Color.White,
-                modifier = Modifier.size(14.dp)
+                modifier = Modifier.size(12.dp)
             )
         }
     }
