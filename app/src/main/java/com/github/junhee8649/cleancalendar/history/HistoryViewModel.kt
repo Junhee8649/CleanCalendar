@@ -16,12 +16,14 @@ class HistoryViewModel(
 
     data class UiState(
         val isLoading: Boolean = false,
-        val workLogs: List<WorkLog> = emptyList(),
-        val userMessage: String? = null
+        val workLogs: List<WorkLog> = emptyList()
     )
 
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+
+    private val _userMessage = MutableStateFlow<String?>(null)
+    val userMessage: StateFlow<String?> = _userMessage.asStateFlow()
 
     init {
         loadWorkLogs()
@@ -29,17 +31,32 @@ class HistoryViewModel(
 
     fun loadWorkLogs() {
         viewModelScope.launch(crashPreventionHandler) {
-            _uiState.update { it.copy(isLoading = true) }
+            val isFirstLoad = _uiState.value.workLogs.isEmpty()
+            if (isFirstLoad) {
+                _uiState.update { it.copy(isLoading = true) }
+            }
             try {
                 val workLogs = workLogRepository.getWorkLogs()
                 _uiState.update { it.copy(workLogs = workLogs, isLoading = false) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, userMessage = e.message) }
+                _uiState.update { it.copy(isLoading = false) }
+                _userMessage.value = e.message
+            }
+        }
+    }
+
+    fun deleteWorkLog(id: String) {
+        viewModelScope.launch(crashPreventionHandler) {
+            try {
+                workLogRepository.deleteWorkLog(id)
+                loadWorkLogs()
+            } catch (e: Exception) {
+                _userMessage.value = e.message
             }
         }
     }
 
     fun userMessageShown() {
-        _uiState.update { it.copy(userMessage = null) }
+        _userMessage.value = null
     }
 }

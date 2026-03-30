@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -30,12 +31,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,10 +63,12 @@ fun HistoryScreen(
     viewModel: HistoryViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val userMessage by viewModel.userMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var workLogToDelete by remember { mutableStateOf<WorkLog?>(null) }
 
-    LaunchedEffect(uiState.userMessage) {
-        uiState.userMessage?.let {
+    LaunchedEffect(userMessage) {
+        userMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.userMessageShown()
         }
@@ -123,7 +131,8 @@ fun HistoryScreen(
                         items(uiState.workLogs, key = { it.id }) { workLog ->
                             WorkLogCard(
                                 workLog = workLog,
-                                onImageClick = { index -> onImageClick(workLog.id, index) }
+                                onImageClick = { index -> onImageClick(workLog.id, index) },
+                                onDeleteClick = { workLogToDelete = workLog }
                             )
                         }
                     }
@@ -131,12 +140,24 @@ fun HistoryScreen(
             }
         }
     }
+
+    workLogToDelete?.let { workLog ->
+        DeleteWorkLogConfirmDialog(
+            workLog = workLog,
+            onConfirm = {
+                viewModel.deleteWorkLog(workLog.id)
+                workLogToDelete = null
+            },
+            onDismiss = { workLogToDelete = null }
+        )
+    }
 }
 
 @Composable
 private fun WorkLogCard(
     workLog: WorkLog,
-    onImageClick: (Int) -> Unit
+    onImageClick: (Int) -> Unit,
+    onDeleteClick: () -> Unit
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -156,11 +177,20 @@ private fun WorkLogCard(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Text(
-                    text = workLog.date.toString(),
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = workLog.date.toString(),
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    IconButton(onClick = onDeleteClick) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "삭제",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
             }
 
             if (workLog.taskCategories.isNotEmpty()) {
@@ -210,4 +240,38 @@ private fun WorkLogCard(
             }
         }
     }
+}
+
+@Composable
+private fun DeleteWorkLogConfirmDialog(
+    workLog: WorkLog,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "작업 일지 삭제",
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+        },
+        text = {
+            Text(
+                "${workLog.schoolName} ${workLog.date} 일지를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.",
+                fontSize = 15.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("삭제", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("취소") }
+        }
+    )
 }
