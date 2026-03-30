@@ -4,9 +4,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -254,7 +254,6 @@ private fun AddSchoolDialog(
     var contactName by remember { mutableStateOf("") }
     var contactPhone by remember { mutableStateOf("") }
     var equipmentInfo by remember { mutableStateOf("") }
-    var memo by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -296,13 +295,6 @@ private fun AddSchoolDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
-                    value = memo,
-                    onValueChange = { memo = it },
-                    label = { Text("메모") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 2
-                )
             }
         },
         confirmButton = {
@@ -317,7 +309,7 @@ private fun AddSchoolDialog(
                                 contactName = contactName.trim(),
                                 contactPhone = contactPhone.trim(),
                                 equipmentInfo = equipmentInfo.trim(),
-                                memo = memo.trim()
+                                memo = ""
                             )
                         )
                     }

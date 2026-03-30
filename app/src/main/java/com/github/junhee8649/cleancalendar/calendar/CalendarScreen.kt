@@ -63,10 +63,8 @@ private val TdsSaturday = Color(0xFF3182F6)
 
 private val DAY_LABELS = listOf("일", "월", "화", "수", "목", "금", "토")
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
-    onNavigateToSchoolDetail: (String) -> Unit,
     viewModel: CalendarViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

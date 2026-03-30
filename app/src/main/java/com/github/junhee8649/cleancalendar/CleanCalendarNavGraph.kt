@@ -9,6 +9,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.github.junhee8649.cleancalendar.calendar.CalendarScreen
+import com.github.junhee8649.cleancalendar.history.HistoryScreen
+import com.github.junhee8649.cleancalendar.history.ImageViewerScreen
+import com.github.junhee8649.cleancalendar.history.WorkLogFormScreen
 import com.github.junhee8649.cleancalendar.schooldetail.SchoolDetailScreen
 import com.github.junhee8649.cleancalendar.schools.SchoolsScreen
 
@@ -25,11 +28,7 @@ fun CleanCalendarNavGraph(
         modifier = modifier
     ) {
         composable(CleanCalendarDestinations.CALENDAR_ROUTE) {
-            CalendarScreen(
-                onNavigateToSchoolDetail = { schoolId ->
-                    navActions.navigateToSchoolDetail(schoolId)
-                }
-            )
+            CalendarScreen()
         }
 
         composable(CleanCalendarDestinations.SCHOOLS_ROUTE) {
@@ -47,6 +46,35 @@ fun CleanCalendarNavGraph(
             val schoolId = backStackEntry.arguments?.getString("schoolId") ?: return@composable
             SchoolDetailScreen(
                 schoolId = schoolId,
+                onBack = { navActions.navigateUp() }
+            )
+        }
+
+        composable(CleanCalendarDestinations.HISTORY_ROUTE) {
+            HistoryScreen(
+                onAddClick = { navActions.navigateToWorkLogForm() },
+                onImageClick = { workLogId, imageIndex ->
+                    navActions.navigateToImageViewer(workLogId, imageIndex)
+                }
+            )
+        }
+
+        composable(CleanCalendarDestinations.WORK_LOG_FORM_ROUTE) {
+            WorkLogFormScreen(onBack = { navActions.navigateUp() })
+        }
+
+        composable(
+            route = "${CleanCalendarDestinations.IMAGE_VIEWER_ROUTE}/{workLogId}/{startIndex}",
+            arguments = listOf(
+                navArgument("workLogId") { type = NavType.StringType },
+                navArgument("startIndex") { type = NavType.IntType }
+            )
+        ) { backStackEntry ->
+            val workLogId = backStackEntry.arguments?.getString("workLogId") ?: return@composable
+            val startIndex = backStackEntry.arguments?.getInt("startIndex") ?: 0
+            ImageViewerScreen(
+                workLogId = workLogId,
+                startIndex = startIndex,
                 onBack = { navActions.navigateUp() }
             )
         }

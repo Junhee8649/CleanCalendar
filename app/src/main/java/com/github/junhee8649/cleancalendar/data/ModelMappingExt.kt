@@ -2,6 +2,7 @@ package com.github.junhee8649.cleancalendar.data
 
 import com.github.junhee8649.cleancalendar.data.source.network.MaintenanceTaskDto
 import com.github.junhee8649.cleancalendar.data.source.network.SchoolDto
+import com.github.junhee8649.cleancalendar.data.source.network.WorkLogDto
 import java.time.LocalDate
 
 fun SchoolDto.toSchool(): School = School(
@@ -46,4 +47,24 @@ fun MaintenanceTask.toDto(): MaintenanceTaskDto = MaintenanceTaskDto(
     completedDate = completedDate?.toString(),
     notes = notes,
     scheduledDate = scheduledDate?.toString()
+)
+
+// DB의 image_paths 컬럼에 full public URL을 저장하므로 변환 불필요
+fun WorkLogDto.toWorkLog(): WorkLog = WorkLog(
+    id = id,
+    schoolId = schoolId,
+    schoolName = schools?.name ?: "",
+    date = LocalDate.parse(date),
+    taskCategories = taskCategories,
+    issuesText = issuesText,
+    imageUrls = imagePaths
+)
+
+fun WorkLog.toInsertDto(): WorkLogDto = WorkLogDto(
+    id = id,
+    schoolId = schoolId,
+    date = date.toString(),
+    taskCategories = taskCategories,
+    issuesText = issuesText,
+    imagePaths = imageUrls
 )
