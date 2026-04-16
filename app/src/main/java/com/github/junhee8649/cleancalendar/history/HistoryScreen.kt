@@ -52,9 +52,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withLink
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -289,27 +295,35 @@ private fun WorkLogListView(
     onDeleteClick: (WorkLog) -> Unit
 ) {
     Column(modifier = modifier) {
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 4.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 4.dp, vertical = 4.dp)
+                .height(48.dp),
+            contentAlignment = Alignment.Center
         ) {
-            IconButton(onClick = onBack) {
+            Text(
+                text = schoolName,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 56.dp)
+            )
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.align(Alignment.CenterStart)
+            ) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "뒤로",
                     tint = MaterialTheme.colorScheme.onBackground
                 )
             }
-            Text(
-                text = schoolName,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(onClick = onAddClick) {
+            IconButton(
+                onClick = onAddClick,
+                modifier = Modifier.align(Alignment.CenterEnd)
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "작업 일지 추가", tint = MaterialTheme.colorScheme.primary)
             }
         }
@@ -346,43 +360,42 @@ private fun WorkLogCard(
     onImageClick: (Int) -> Unit,
     onDeleteClick: () -> Unit
 ) {
+    var expanded by remember { mutableStateOf(false) }
+    var cutIndex by remember { mutableStateOf(-1) }
+
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = 1.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = workLog.schoolName,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
+                    text = workLog.date.toString(),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = workLog.date.toString(),
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                IconButton(onClick = onDeleteClick) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "삭제",
+                        tint = MaterialTheme.colorScheme.error
                     )
-                    IconButton(onClick = onDeleteClick) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "삭제",
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
                 }
             }
 
             if (workLog.taskCategories.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.padding(end = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     workLog.taskCategories.forEach { category ->
                         FilterChip(
                             selected = true,
@@ -398,19 +411,68 @@ private fun WorkLogCard(
             }
 
             if (workLog.issuesText.isNotBlank()) {
+                val primaryColor = MaterialTheme.colorScheme.primary
+                val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+                val displayText = remember(cutIndex, expanded, workLog.issuesText) {
+                    if (expanded || cutIndex < 0) {
+                        buildAnnotatedString { append(workLog.issuesText) }
+                    } else {
+                        buildAnnotatedString {
+                            val truncateAt = maxOf(0, cutIndex - 6)
+                            append(workLog.issuesText.take(truncateAt))
+                            append("...")
+                            withLink(
+                                LinkAnnotation.Clickable(
+                                    tag = "EXPAND",
+                                    styles = TextLinkStyles(
+                                        style = SpanStyle(
+                                            color = primaryColor,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    ),
+                                    linkInteractionListener = { expanded = true }
+                                )
+                            ) {
+                                append("더보기")
+                            }
+                        }
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = workLog.issuesText,
+                    text = displayText,
                     fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
+                    color = onSurfaceColor,
+                    maxLines = if (expanded) Int.MAX_VALUE else 3,
+                    overflow = TextOverflow.Clip,
+                    modifier = Modifier.padding(end = 12.dp),
+                    onTextLayout = { result ->
+                        if (!expanded && cutIndex < 0 && result.hasVisualOverflow) {
+                            cutIndex = result.getLineEnd(2, visibleEnd = true)
+                        }
+                    }
                 )
+                if (expanded) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "접기",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.clickable {
+                            expanded = false
+                            cutIndex = -1
+                        }
+                    )
+                }
             }
 
             if (workLog.imageUrls.isNotEmpty()) {
                 Spacer(Modifier.height(10.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    contentPadding = PaddingValues(end = 12.dp)
+                ) {
                     itemsIndexed(workLog.imageUrls) { index, url ->
                         AsyncImage(
                             model = url,
