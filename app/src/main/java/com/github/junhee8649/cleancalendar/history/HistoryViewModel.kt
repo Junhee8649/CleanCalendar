@@ -37,7 +37,7 @@ class HistoryViewModel(
 
     private fun loadData() {
         viewModelScope.launch(crashPreventionHandler) {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isLoading = it.schools.isEmpty()) }
             try {
                 val schools = schoolRepository.getSchools()
                 val workLogs = workLogRepository.getWorkLogs()
