@@ -47,8 +47,12 @@ class NavigationActions(private val navController: NavHostController) {
         navController.navigate(CleanCalendarDestinations.schoolDetailRoute(schoolId))
     }
 
-    fun navigateToWorkLogForm() {
-        navController.navigate(CleanCalendarDestinations.WORK_LOG_FORM_ROUTE)
+    fun navigateToWorkLogForm(schoolId: String? = null) {
+        val route = if (!schoolId.isNullOrEmpty())
+            "${CleanCalendarDestinations.WORK_LOG_FORM_ROUTE}?schoolId=$schoolId"
+        else
+            CleanCalendarDestinations.WORK_LOG_FORM_ROUTE
+        navController.navigate(route)
     }
 
     fun navigateToImageViewer(workLogId: String, startIndex: Int) {

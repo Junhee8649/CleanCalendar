@@ -66,7 +66,7 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun HistoryScreen(
-    onAddClick: () -> Unit,
+    onAddClick: (schoolId: String?) -> Unit,
     onImageClick: (workLogId: String, imageIndex: Int) -> Unit,
     viewModel: HistoryViewModel = koinViewModel()
 ) {
@@ -125,7 +125,7 @@ fun HistoryScreen(
                 searchQuery = uiState.searchQuery,
                 onSearchQueryChange = viewModel::onSearchQueryChange,
                 onSchoolClick = viewModel::selectSchool,
-                onAddClick = onAddClick
+                onAddClick = { onAddClick(null) }
             )
         } else {
             WorkLogListView(
@@ -133,7 +133,7 @@ fun HistoryScreen(
                 schoolName = selectedSchool?.name ?: "",
                 workLogs = selectedSchoolWorkLogs,
                 onBack = viewModel::clearSchoolSelection,
-                onAddClick = onAddClick,
+                onAddClick = { onAddClick(uiState.selectedSchoolId) },
                 onImageClick = onImageClick,
                 onDeleteClick = { workLogToDelete = it }
             )

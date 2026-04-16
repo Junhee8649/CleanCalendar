@@ -24,6 +24,7 @@ class WorkLogFormViewModel(
         val isLoading: Boolean = false,
         val schools: List<School> = emptyList(),
         val selectedSchoolId: String? = null,
+        val isSchoolPreSelected: Boolean = false,
         val selectedDate: LocalDate = LocalDate.now(),
         val selectedCategories: Set<String> = emptySet(),
         val issuesText: String = "",
@@ -54,6 +55,11 @@ class WorkLogFormViewModel(
 
     fun selectSchool(schoolId: String) {
         _uiState.update { it.copy(selectedSchoolId = schoolId) }
+    }
+
+    fun preSelectSchool(schoolId: String?) {
+        if (schoolId.isNullOrEmpty()) return
+        _uiState.update { it.copy(selectedSchoolId = schoolId, isSchoolPreSelected = true) }
     }
 
     fun selectDate(date: LocalDate) {

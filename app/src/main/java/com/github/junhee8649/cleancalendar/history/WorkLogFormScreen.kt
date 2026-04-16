@@ -86,6 +86,7 @@ private val TASK_CATEGORIES = listOf("점검", "수리", "청소", "교체", "�
 @Composable
 fun WorkLogFormScreen(
     onBack: () -> Unit,
+    preSelectedSchoolId: String? = null,
     viewModel: WorkLogFormViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -98,6 +99,10 @@ fun WorkLogFormScreen(
 
     LaunchedEffect(uiState.isSaved) {
         if (uiState.isSaved) onBack()
+    }
+
+    LaunchedEffect(preSelectedSchoolId) {
+        viewModel.preSelectSchool(preSelectedSchoolId)
     }
 
     LaunchedEffect(uiState.userMessage) {
@@ -175,51 +180,53 @@ fun WorkLogFormScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // 학교 선택
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        "학교 선택",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    ExposedDropdownMenuBox(
-                        expanded = schoolDropdownExpanded,
-                        onExpandedChange = { schoolDropdownExpanded = it }
-                    ) {
-                        OutlinedTextField(
-                            value = uiState.schools.find { it.id == uiState.selectedSchoolId }?.name ?: "",
-                            onValueChange = {},
-                            readOnly = true,
-                            placeholder = {
-                                Text(
-                                    "학교를 선택하세요",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = schoolDropdownExpanded)
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+            // 학교 선택 (학교 컨텍스트에서 진입 시 숨김)
+            if (!uiState.isSchoolPreSelected) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surface
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "학교 선택",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        ExposedDropdownMenu(
+                        Spacer(Modifier.height(8.dp))
+                        ExposedDropdownMenuBox(
                             expanded = schoolDropdownExpanded,
-                            onDismissRequest = { schoolDropdownExpanded = false }
+                            onExpandedChange = { schoolDropdownExpanded = it }
                         ) {
-                            uiState.schools.forEach { school ->
-                                DropdownMenuItem(
-                                    text = { Text(school.name) },
-                                    onClick = {
-                                        viewModel.selectSchool(school.id)
-                                        schoolDropdownExpanded = false
-                                    }
-                                )
+                            OutlinedTextField(
+                                value = uiState.schools.find { it.id == uiState.selectedSchoolId }?.name ?: "",
+                                onValueChange = {},
+                                readOnly = true,
+                                placeholder = {
+                                    Text(
+                                        "학교를 선택하세요",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = schoolDropdownExpanded)
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                            )
+                            ExposedDropdownMenu(
+                                expanded = schoolDropdownExpanded,
+                                onDismissRequest = { schoolDropdownExpanded = false }
+                            ) {
+                                uiState.schools.forEach { school ->
+                                    DropdownMenuItem(
+                                        text = { Text(school.name) },
+                                        onClick = {
+                                            viewModel.selectSchool(school.id)
+                                            schoolDropdownExpanded = false
+                                        }
+                                    )
+                                }
                             }
                         }
                     }

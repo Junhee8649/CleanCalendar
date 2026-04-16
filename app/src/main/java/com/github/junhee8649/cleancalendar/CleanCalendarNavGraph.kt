@@ -52,15 +52,22 @@ fun CleanCalendarNavGraph(
 
         composable(CleanCalendarDestinations.HISTORY_ROUTE) {
             HistoryScreen(
-                onAddClick = { navActions.navigateToWorkLogForm() },
+                onAddClick = { schoolId -> navActions.navigateToWorkLogForm(schoolId) },
                 onImageClick = { workLogId, imageIndex ->
                     navActions.navigateToImageViewer(workLogId, imageIndex)
                 }
             )
         }
 
-        composable(CleanCalendarDestinations.WORK_LOG_FORM_ROUTE) {
-            WorkLogFormScreen(onBack = { navActions.navigateUp() })
+        composable(
+            route = "${CleanCalendarDestinations.WORK_LOG_FORM_ROUTE}?schoolId={schoolId}",
+            arguments = listOf(navArgument("schoolId") {
+                type = NavType.StringType
+                defaultValue = ""
+            })
+        ) { backStackEntry ->
+            val schoolId = backStackEntry.arguments?.getString("schoolId")?.takeIf { it.isNotEmpty() }
+            WorkLogFormScreen(preSelectedSchoolId = schoolId, onBack = { navActions.navigateUp() })
         }
 
         composable(
